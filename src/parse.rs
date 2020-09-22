@@ -45,7 +45,7 @@ where
     T: Parsable,
 {
     let (input, table_len) = le_u32(data)?;
-    let (variable_data, static_data) = take_until(&b"\xbb\xbb\xbb\xbb\xbb\xbb\xbb\xbb"[..])(input)?;
+    let (variable_data, static_data) = take_until(&MAGIC_NUMBER[..])(input)?;
 
     std::iter::repeat(|row| T::parse(row, variable_data))
         .take(table_len as usize)

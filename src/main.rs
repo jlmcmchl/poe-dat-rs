@@ -16,8 +16,9 @@ fn main() {
         match file.read_to_end(&mut contents) {
             Err(why) => panic!("couldn't read {}: {}", path.display(), why),
             Ok(_size) => {
-                let parsed =
-                    parse::parse::<parse::AfflictionSplitDemon>(contents.as_slice()).unwrap().1;
+                let parsed = parse::parse::<parse::AfflictionSplitDemon>(contents.as_slice())
+                    .unwrap()
+                    .1;
                 println!("path: {:?}\ncontent: {:?}", path, parsed);
             }
         }
