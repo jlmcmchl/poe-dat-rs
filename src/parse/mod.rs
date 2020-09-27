@@ -38,7 +38,7 @@ fn parse_ref_string<'a>(input: &'a [u8], variable_data: &'a [u8]) -> IResult<&'a
     }
 }
 
-fn parse_vec<'a, 'b, T>(
+fn parse_vec<'a, T>(
     input: &'a [u8],
     variable_data: &'a [u8],
     parser: Box<dyn Fn(&'a [u8], &'a [u8]) -> IResult<&'a [u8], T>>,
