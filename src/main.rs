@@ -5,7 +5,7 @@ use std::io::prelude::*;
 mod parse;
 
 fn main() {
-    for path in glob("G:\\POE\\Data\\AfflictionSplitDemons.dat").unwrap() {
+    for path in glob("G:\\POE\\Data\\AreaInfluenceDoodads.dat").unwrap() {
         let path = path.unwrap();
         let mut file = match File::open(path.as_path()) {
             Err(why) => panic!("couldn't open {}: {}", path.display(), why),
@@ -16,12 +16,15 @@ fn main() {
         match file.read_to_end(&mut contents) {
             Err(why) => panic!("couldn't read {}: {}", path.display(), why),
             Ok(_size) => {
-                let parsed = parse::parse::<parse::AfflictionSplitDemon>(contents.as_slice())
-                    .unwrap()
-                    .1;
-                println!("path: {:?}\ncontent: {:?}", path, parsed);
+                match parse::parse::<parse::types::AreaInfluenceDoodads>(contents.as_slice()) {
+                    Ok((_, parsed)) => {
+                        for demon in parsed {
+                            println!("{:?}", demon);
+                        }
+                    }
+                    Err(e) => println!("{:?}", e),
+                }
             }
         }
-        break;
     }
 }
