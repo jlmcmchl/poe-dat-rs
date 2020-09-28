@@ -6,7 +6,9 @@ use nom::{
 
 pub mod types;
 
-pub trait Parsable {
+type Parser<'a, T> = dyn Fn(&'a [u8], &'a [u8]) -> IResult<&'a [u8], T>;
+
+pub trait Parse {
     fn parse<'a>(input: &'a [u8], variable_data: &'a [u8]) -> IResult<&'a [u8], Self>
     where
         Self: Sized;
@@ -41,7 +43,7 @@ fn parse_ref_string<'a>(input: &'a [u8], variable_data: &'a [u8]) -> IResult<&'a
 fn parse_vec<'a, T>(
     input: &'a [u8],
     variable_data: &'a [u8],
-    parser: Box<dyn Fn(&'a [u8], &'a [u8]) -> IResult<&'a [u8], T>>,
+    parser: Box<Parser<'a, T>>,
 ) -> IResult<&'a [u8], Vec<T>> {
     let (input, mut len) = le_u32(input)?;
     let (input, offset) = le_u32(input)?;
@@ -66,7 +68,7 @@ lazy_static! {
 
 pub fn parse<T>(data: &[u8]) -> IResult<&[u8], Vec<T>>
 where
-    T: Parsable,
+    T: Parse,
 {
     all_consuming(|data| {
         let (input, table_len) = le_u32(data)?;

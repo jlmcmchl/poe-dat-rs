@@ -3,7 +3,7 @@ use nom::{
     number::complete::le_u8, IResult,
 };
 
-use super::{parse_ref_string, parse_vec, Parsable};
+use super::{parse_ref_string, parse_vec, Parse};
 
 #[derive(Debug)]
 pub struct AbyssObjects {
@@ -29,7 +29,7 @@ pub struct AbyssObjects {
     unknown20: i32,
 }
 
-impl Parsable for AbyssObjects {
+impl Parse for AbyssObjects {
     fn parse<'a>(input: &'a [u8], variable_data: &'a [u8]) -> IResult<&'a [u8], Self>
     where
         Self: Sized,
@@ -90,7 +90,7 @@ pub struct AchievementItemRewards {
     message: String,
 }
 
-impl Parsable for AchievementItemRewards {
+impl Parse for AchievementItemRewards {
     fn parse<'a>(input: &'a [u8], variable_data: &'a [u8]) -> IResult<&'a [u8], Self>
     where
         Self: Sized,
@@ -117,7 +117,7 @@ pub struct AfflictionSplitDemons {
     affliction_random_mod_categories_key: u64,
 }
 
-impl Parsable for AfflictionSplitDemons {
+impl Parse for AfflictionSplitDemons {
     fn parse<'a>(input: &'a [u8], _: &[u8]) -> IResult<&'a [u8], Self>
     where
         Self: Sized,
@@ -146,7 +146,7 @@ pub struct AreaInfluenceDoodads {
     unknown7: u8,
 }
 
-impl Parsable for AreaInfluenceDoodads {
+impl Parse for AreaInfluenceDoodads {
     fn parse<'a>(input: &'a [u8], variable_data: &'a [u8]) -> IResult<&'a [u8], Self>
     where
         Self: Sized,

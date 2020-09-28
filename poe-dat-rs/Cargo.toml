@@ -1,0 +1,13 @@
+[package]
+name = "poe-dat-rs"
+version = "0.1.0"
+authors = ["jlmcmchl <jlmcmchl@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nom="5.1.2"
+lazy_static="1.4.0"
+poe-struct-gen = { path = "../poe-struct-gen" }
+poe-parser-derive = { path = "../poe-parser-derive"}
