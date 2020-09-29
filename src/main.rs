@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use poe_dat_rs::{parse, types};
 
 fn main() -> Result<(), String> {
-    for path in glob("G:\\POE\\Data\\AfflictionRewardTypeVisuals.dat").unwrap() {
+    for path in glob("G:\\POE\\Data\\AbyssObjects.dat").unwrap() {
         let path = path.unwrap();
         let mut file = File::open(path.as_path()).map_err(|err| format!("{:?}", err))?;
 
@@ -16,7 +16,7 @@ fn main() -> Result<(), String> {
 
         println!("len: {}", len);
 
-        let (_, parsed) = parse::parse::<types::AfflictionRewardTypeVisuals>(contents.as_slice())
+        let (_, parsed) = parse::parse::<types::AbyssObjects>(contents.as_slice())
             .map_err(|err| format!("{:?}", err))?;
 
         for row in parsed {

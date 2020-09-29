@@ -115,7 +115,8 @@ fn struct_from_json(json: &Value, name: &str) -> TokenStream2 {
 }
 
 fn field_for_json_field(k: &str, v: &Value) -> TokenStream2 {
-    let k = k.replace("2DArt", "Art2D").replace("Type", "Typ");
+    let mut k = k.replace("2DArt", "Art2D");
+    k = if k == "Type" { "Typ".to_owned() } else { k };
     let key = syn::Ident::new(&k.to_snake_case()[..], Span::call_site());
     let ty = v["type"].as_str().unwrap();
 
