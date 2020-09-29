@@ -12,9 +12,12 @@ name = "spec-gen"
 path = "examples/spec-gen.rs"
 
 [[example]]
-name = "parsable-derive"
-path = "examples/parsable-derive.rs"
+name = "parse-derive"
+path = "examples/parse-derive.rs"
 
 [dependencies]
 glob="0.3.0"
 poe-dat-rs = { path = "poe-dat-rs"}
+nom = "5.1.2"
+heck = "0.3.1"
+poe-type-gen = { path = "poe-type-gen" }
