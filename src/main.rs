@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use poe_dat_rs::{parse, types};
 
 fn main() -> Result<(), String> {
-    for path in glob("G:\\POE\\Data\\AbyssObjects.dat").unwrap() {
+    for path in glob("G:\\POE\\Data\\BaseItemTypes.dat").unwrap() {
         let path = path.unwrap();
         let mut file = File::open(path.as_path()).map_err(|err| format!("{:?}", err))?;
 
@@ -16,12 +16,11 @@ fn main() -> Result<(), String> {
 
         println!("len: {}", len);
 
-        let (_, parsed) = parse::parse::<types::AbyssObjects>(contents.as_slice())
-            .map_err(|err| format!("{:?}", err))?;
+        let fname = path.as_path().file_name().unwrap().to_str().unwrap();
 
-        for row in parsed {
-            println!("{:?}", row);
-        }
+        let parsed = types::PoeData::parse_file(fname, &contents[..]);
+
+        println!("{:#?}", parsed);
     }
 
     Ok(())

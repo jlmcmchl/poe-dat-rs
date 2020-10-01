@@ -43,11 +43,15 @@ pub fn genstructs(input: TokenStream) -> TokenStream {
         }
     });
 
-    let strucs = quote! {
+    let parser_reference = get_parser_recommendation_func(&json);
+
+    let body = quote! {
         #(#structs)*
+
+        #parser_reference
     };
 
-    strucs.into()
+    body.into()
 }
 
 #[proc_macro_derive(Parse, attributes(parse_as))]
@@ -73,9 +77,7 @@ pub fn parse_derive(input: TokenStream) -> TokenStream {
     let parse_impl = quote! {
 
         impl poe_parser::Parse for #ident {
-            fn parse<'a>(input: &'a [u8], variable_data: &'a [u8]) -> nom::IResult<&'a [u8], Self>
-            where
-                Self: Sized,
+            fn parse<'a>(input: &'a [u8], variable_data: &'a [u8]) -> nom::IResult<&'a [u8], #ident>
             {
                 #(#parse_steps)*
 
@@ -183,25 +185,25 @@ fn parser_for_field(field: &Field) -> TokenStream2 {
                                         res = quote! { let (input, #name) = nom::number::complete::le_i32(input)?; }
                                     }
                                     "\"ref|list|float\"" => {
-                                        res = quote! { let (input, #name) = Self::parse_vec(input, variable_data, Box::new(|i, _| nom::number::complete::le_f32(i)))?; }
+                                        res = quote! { let (input, #name) = Self::parse_vec::<f32>(input, variable_data, Box::new(|i, _| nom::number::complete::le_f32(i)))?; }
                                     }
                                     "\"ref|list|int\"" => {
-                                        res = quote! { let (input, #name) = Self::parse_vec(input, variable_data, Box::new(|i, _| nom::number::complete::le_i32(i)))?; }
+                                        res = quote! { let (input, #name) = Self::parse_vec::<i32>(input, variable_data, Box::new(|i, _| nom::number::complete::le_i32(i)))?; }
                                     }
                                     "\"ref|list|long\"" => {
-                                        res = quote! { let (input, #name) = Self::parse_vec(input, variable_data, Box::new(|i, _| nom::number::complete::le_i64(i)))?; }
+                                        res = quote! { let (input, #name) = Self::parse_vec::<i64>(input, variable_data, Box::new(|i, _| nom::number::complete::le_i64(i)))?; }
                                     }
                                     "\"ref|list|ref|generic\"" => {
-                                        res = quote! { let (input, #name) = Self::parse_vec(input, variable_data, Box::new(|i, _| nom::number::complete::le_i32(i)))?; }
+                                        res = quote! { let (input, #name) = Self::parse_vec::<i32>(input, variable_data, Box::new(|i, _| nom::number::complete::le_i32(i)))?; }
                                     }
                                     "\"ref|list|ref|string\"" => {
-                                        res = quote! { let (input, #name) = Self::parse_vec(input, variable_data, Box::new(|i, v| Self::parse_ref_string(i, v)))?; }
+                                        res = quote! { let (input, #name) = Self::parse_vec::<String>(input, variable_data, Box::new(|i, v| Self::parse_ref_string(i, v)))?; }
                                     }
                                     "\"ref|list|uint\"" => {
-                                        res = quote! { let (input, #name) = Self::parse_vec(input, variable_data, Box::new(|i, _| nom::number::complete::le_u32(i)))?; }
+                                        res = quote! { let (input, #name) = Self::parse_vec::<u32>(input, variable_data, Box::new(|i, _| nom::number::complete::le_u32(i)))?; }
                                     }
                                     "\"ref|list|ulong\"" => {
-                                        res = quote! { let (input, #name) = Self::parse_vec(input, variable_data, Box::new(|i, _| nom::number::complete::le_u64(i)))?; }
+                                        res = quote! { let (input, #name) = Self::parse_vec::<u64>(input, variable_data, Box::new(|i, _| nom::number::complete::le_u64(i)))?; }
                                     }
                                     "\"ref|string\"" => {
                                         res = quote! { let (input, #name) = Self::parse_ref_string(input, variable_data)?; }
@@ -229,4 +231,46 @@ fn parser_for_field(field: &Field) -> TokenStream2 {
     }
 
     res
+}
+
+fn get_parser_recommendation_func(json: &Value) -> TokenStream2 {
+    let enum_opts = json.as_object().unwrap().iter().map(|(k, _)| {
+        let struct_name = syn::Ident::new(&k[..k.len() - 4], Span::call_site());
+        quote! {
+            #struct_name(std::vec::Vec<#struct_name>)
+        }
+    });
+
+    let match_arms = json
+    .as_object()
+    .unwrap()
+    .iter()
+    .map(|(k, _)| {
+        let file_name = &k[..];
+        let struct_ident = syn::Ident::new(&k[..k.len() - 4], Span::call_site());
+        quote! {
+            #file_name => poe_parser::parse::<#struct_ident>(content).map(|(i, v)| PoeData::#struct_ident(v)).map_err(|x| match x {
+                Incomplete(n) => format!("Error parsing data for file {}: Incomplete Data! {:?}", file, n),
+                Error((_, e)) => format!("Error parsing data for file {}: {}", file, e.description()),
+                Failure((_, e)) => format!("Error parsing data for file {}: {}", file, e.description())
+            })
+        }
+    });
+
+    quote! {
+        #[derive(Debug, Serialize, Deserialize)]
+        pub enum PoeData {
+            #(#enum_opts,)*
+        }
+
+        impl PoeData {
+            pub fn parse_file(file: &str, content: &[u8]) -> Result<Self, String>  {
+                use nom::Err::*;
+                match file {
+                    #(#match_arms,)*
+                    _ => Err(format!("Could not determine data type from file name: {}", file))
+                }
+            }
+        }
+    }
 }
