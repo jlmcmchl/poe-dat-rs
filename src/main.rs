@@ -2,10 +2,10 @@ use glob::glob;
 use std::fs::File;
 use std::io::prelude::*;
 
-use poe_dat_rs::{parse, types};
+use poe_dat_rs::types;
 
 fn main() -> Result<(), String> {
-    for path in glob("G:\\POE\\Data\\BaseItemTypes.dat").unwrap() {
+    for path in glob("G:\\POE\\Data\\*.dat").unwrap() {
         let path = path.unwrap();
         let mut file = File::open(path.as_path()).map_err(|err| format!("{:?}", err))?;
 
@@ -14,13 +14,12 @@ fn main() -> Result<(), String> {
             .read_to_end(&mut contents)
             .map_err(|err| format!("{:?}", err))?;
 
-        println!("len: {}", len);
-
         let fname = path.as_path().file_name().unwrap().to_str().unwrap();
 
+        print!("{} ({}): ", fname, len);
         let parsed = types::PoeData::parse_file(fname, &contents[..]);
 
-        println!("{:#?}", parsed);
+        println!("{}", parsed.is_ok());
     }
 
     Ok(())
