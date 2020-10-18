@@ -47718,6 +47718,15 @@
             "Key2": null
         }
     },
+    "Languages.dat": {
+        "fields": {},
+        "virtual_fields": {},
+        "columns": {},
+        "columns_all": {},
+        "columns_data": {},
+        "columns_unique": {},
+        "columns_zip": {}
+    },
     "LeagueCategory.dat": {
         "fields": {},
         "virtual_fields": {},

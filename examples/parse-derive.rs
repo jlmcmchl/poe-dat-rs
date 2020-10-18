@@ -9,11 +9,15 @@ fn main() -> Result<(), String> {
         let _len = file
             .read_to_end(&mut contents)
             .map_err(|err| format!("{:?}", err))?;
-        let (_, parsed) = poe_dat_rs::parse::parse::<poe_dat_rs::types::AreaInfluenceDoodads>(
+        let (good, bad) = poe_dat_rs::parse::parse::<poe_dat_rs::types::AreaInfluenceDoodads>(
             contents.as_slice(),
-        )
-        .map_err(|err| format!("{:?}", err))?;
-        for row in parsed {
+        );
+
+        for row in good {
+            println!("{:?}", row);
+        }
+
+        for row in bad {
             println!("{:?}", row);
         }
     }

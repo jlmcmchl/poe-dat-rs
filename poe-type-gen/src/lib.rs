@@ -106,7 +106,7 @@ fn struct_from_json(json: &Value, name: &str) -> TokenStream2 {
             .collect();
 
         quote! {
-            #[derive(Debug, Parse, Serialize, Deserialize)]
+            #[derive(Debug, Parse, Serialize, Deserialize, Default, Clone)]
             pub struct #id {
                 #(#fields,)*
             }
@@ -146,7 +146,7 @@ fn field_for_json_field(k: &str, v: &Value) -> TokenStream2 {
 
     quote! {
         #[parse_as(#ty)]
-        #key: #typ
+        pub #key: #typ
     }
 }
 
@@ -241,19 +241,14 @@ fn get_parser_recommendation_func(json: &Value) -> TokenStream2 {
         }
     });
 
-    let match_arms = json
-    .as_object()
-    .unwrap()
-    .iter()
-    .map(|(k, _)| {
+    let match_arms = json.as_object().unwrap().iter().map(|(k, _)| {
         let file_name = &k[..];
         let struct_ident = syn::Ident::new(&k[..k.len() - 4], Span::call_site());
         quote! {
-            #file_name => poe_parser::parse::<#struct_ident>(content).map(|(i, v)| PoeData::#struct_ident(v)).map_err(|x| match x {
-                Incomplete(n) => format!("Error parsing data for file {}: Incomplete Data! {:?}", file, n),
-                Error((_, e)) => format!("Error parsing data for file {}: {}", file, e.description()),
-                Failure((_, e)) => format!("Error parsing data for file {}: {}", file, e.description())
-            })
+            #file_name => {
+                let (good, bad) = poe_parser::parse::<#struct_ident>(content);
+                Ok((PoeData::#struct_ident(good), bad))
+            }
         }
     });
 
@@ -264,7 +259,7 @@ fn get_parser_recommendation_func(json: &Value) -> TokenStream2 {
         }
 
         impl PoeData {
-            pub fn parse_file(file: &str, content: &[u8]) -> Result<Self, String>  {
+            pub fn parse_file<'a>(file: &str, content: &'a [u8]) -> Result<(Self, Vec<nom::Err<(&'a [u8], nom::error::ErrorKind)>>), String>  {
                 use nom::Err::*;
                 match file {
                     #(#match_arms,)*

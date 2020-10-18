@@ -1,8 +1,9 @@
 use lazy_static::lazy_static;
 use nom::{
-    bytes::complete::take_until, combinator::all_consuming, number::complete::le_u16,
-    number::complete::le_u32, IResult,
+    bytes::complete::take_until, number::complete::le_u16, number::complete::le_u32, IResult,
 };
+
+use rayon::{iter::Either, prelude::*};
 
 type Parser<'a, T> = dyn Fn(&'a [u8], &'a [u8]) -> IResult<&'a [u8], T>;
 
@@ -16,6 +17,17 @@ pub trait Parse {
 
         let mut mem = &variable_data[pointer as usize..];
         let mut string = Vec::new();
+        if mem.len() == 0 {
+            return String::from_utf16(&string).map_or_else(
+                |_| {
+                    Err(nom::Err::Failure((
+                        &variable_data[pointer as usize..],
+                        nom::error::ErrorKind::Char,
+                    )))
+                },
+                |res| Ok((input, res)),
+            );
+        }
 
         loop {
             let res = le_u16(mem)?;
@@ -34,6 +46,18 @@ pub trait Parse {
             }
 
             string.push(res.1);
+
+            if mem.len() == 0 {
+                break String::from_utf16(&string).map_or_else(
+                    |_| {
+                        Err(nom::Err::Failure((
+                            &variable_data[pointer as usize..],
+                            nom::error::ErrorKind::Char,
+                        )))
+                    },
+                    |res| Ok((input, res)),
+                );
+            }
         }
     }
 
@@ -64,21 +88,29 @@ lazy_static! {
     static ref MAGIC_NUMBER: Vec<u8> = vec![0xbb; 8];
 }
 
-pub fn parse<T>(data: &[u8]) -> IResult<&[u8], Vec<T>>
+pub fn parse<T>(data: &[u8]) -> (Vec<T>, Vec<nom::Err<(&[u8], nom::error::ErrorKind)>>)
 where
-    T: Parse,
+    T: Parse + Send + Default + Clone,
 {
-    all_consuming(|data| {
-        let (input, table_len) = le_u32(data)?;
-        let (variable_data, static_data) = take_until(&MAGIC_NUMBER[..])(input)?;
+    let (input, table_len) = le_u32::<nom::error::VerboseError<&[u8]>>(data).unwrap();
 
-        std::iter::repeat(|row| T::parse(row, variable_data))
-            .take(table_len as usize)
-            .try_fold((static_data, Vec::new()), |(data, mut acc), parser| {
-                parser(data).map(|(i, o)| {
-                    acc.push(o);
-                    (i, acc)
-                })
-            })
-    })(data)
+    if table_len == 0 {
+        return (Vec::new(), Vec::new());
+    }
+
+    let (variable_data, static_data) =
+        take_until::<_, _, nom::error::VerboseError<&[u8]>>(&MAGIC_NUMBER[..])(input).unwrap();
+
+    if static_data.len() == 0 {
+        return (vec![Default::default(); table_len as usize], Vec::new());
+    }
+
+    let rowlen = static_data.len() / table_len as usize;
+    static_data
+        .par_chunks_exact(rowlen)
+        .map(|chunk| T::parse(chunk, variable_data))
+        .partition_map(|row| match row {
+            Ok((_, row)) => Either::Left(row),
+            Err(e) => Either::Right(e),
+        })
 }
